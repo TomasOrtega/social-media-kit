@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { OAuthConfig, PlatformAuth, AuthState, DEFAULT_OAUTH_CONFIG } from '../types';
+import { getJwtExpiresAt } from '../utils/tokenExpiration';
 
 const PLATFORMS = ['linkedin', 'twitter', 'mastodon', 'bluesky'] as const;
 type Platform = typeof PLATFORMS[number];
@@ -57,6 +58,16 @@ export const useAuth = () => {
         const parsedAuth = JSON.parse(savedAuth);
         if (parsedAuth.bluesky) {
           delete parsedAuth.bluesky.appPassword;
+          if (typeof parsedAuth.bluesky.accessToken === 'string') {
+            const expiresAt = getJwtExpiresAt(parsedAuth.bluesky.accessToken);
+            if (expiresAt === null) {
+              parsedAuth.bluesky.isAuthenticated = false;
+              parsedAuth.bluesky.accessToken = null;
+              parsedAuth.bluesky.refreshToken = null;
+            } else {
+              parsedAuth.bluesky.expiresAt = expiresAt;
+            }
+          }
         }
         // Merge with default auth state to ensure all platforms are present
         const mergedAuth: PlatformAuth = {

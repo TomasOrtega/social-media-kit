@@ -1,4 +1,5 @@
 import { PlatformAuth } from '../types';
+import { getJwtExpiresAt } from '../utils/tokenExpiration';
 
 // Helper function to attempt automatic token refresh
 export const attemptTokenRefresh = async (
@@ -33,11 +34,22 @@ export const attemptTokenRefresh = async (
 
     const tokenData = await response.json();
 
+    const expiresAt = platform === 'bluesky'
+      ? getJwtExpiresAt(tokenData.access_token)
+      : tokenData.expires_in
+        ? Date.now() + (tokenData.expires_in * 1000)
+        : null;
+
+    if (platform === 'bluesky' && expiresAt === null) {
+      console.warn('Bluesky refresh returned an invalid access token');
+      return false;
+    }
+
     // Update auth state with new tokens
     onAuthUpdate({
       accessToken: tokenData.access_token,
       refreshToken: tokenData.refresh_token || auth.refreshToken,
-      expiresAt: tokenData.expires_in ? Date.now() + (tokenData.expires_in * 1000) : null,
+      expiresAt,
     });
 
     console.log(`✅ Successfully refreshed ${platform} token`);
@@ -63,20 +75,29 @@ export const ensureValidAuth = async (
   auth: PlatformAuth[typeof platform],
   onAuthUpdate: (newAuth: Partial<PlatformAuth[typeof platform]>) => void,
   showNotification: (message: string) => void
-): Promise<boolean> => {
+): Promise<string | null> => {
   // Check if authenticated
   if (!auth.isAuthenticated) {
-    return false;
+    return null;
   }
 
   // Check if token is expired
   if (isTokenExpired(auth)) {
     console.log(`⏰ ${platform} token is expired, attempting refresh...`);
-    const refreshSuccess = await attemptTokenRefresh(platform, auth, onAuthUpdate, showNotification);
-    return refreshSuccess;
+    let refreshedAccessToken: string | null = null;
+    const refreshSuccess = await attemptTokenRefresh(
+      platform,
+      auth,
+      (newAuth) => {
+        onAuthUpdate(newAuth);
+        refreshedAccessToken = newAuth.accessToken || null;
+      },
+      showNotification,
+    );
+    return refreshSuccess ? refreshedAccessToken : null;
   }
 
-  return true;
+  return auth.accessToken;
 };
 
 // Post to LinkedIn

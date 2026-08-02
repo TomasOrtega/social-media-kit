@@ -404,7 +404,6 @@ app.post('/api/oauth/refresh', async (req, res) => {
       tokenData = {
         access_token: refreshData.accessJwt,
         refresh_token: refreshData.refreshJwt,
-        expires_in: 24 * 60 * 60, // 24 hours
       };
       
     } else {
