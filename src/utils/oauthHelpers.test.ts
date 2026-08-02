@@ -1,5 +1,5 @@
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
-import { generatePKCE } from './oauthHelpers';
+import { generateOAuthState, generatePKCE } from './oauthHelpers';
 
 describe('OAuth Helpers', () => {
   // Save original crypto
@@ -133,31 +133,6 @@ describe('OAuth Helpers', () => {
       expect(callArg).toBeInstanceOf(Uint8Array);
     });
 
-    it('should log generated PKCE parameters', async () => {
-      const mockConsoleLog = console.log as jest.MockedFunction<typeof console.log>;
-
-      await generatePKCE();
-
-      expect(mockConsoleLog).toHaveBeenCalledWith(
-        '🔐 Generated PKCE parameters:',
-        expect.objectContaining({
-          codeVerifier: expect.any(String),
-          codeChallenge: expect.any(String)
-        })
-      );
-    });
-
-    it('should truncate logged values for security', async () => {
-      const mockConsoleLog = console.log as jest.MockedFunction<typeof console.log>;
-
-      await generatePKCE();
-
-      const loggedObject = mockConsoleLog.mock.calls[0][1] as { codeVerifier: string; codeChallenge: string };
-
-      expect(loggedObject.codeVerifier).toContain('...');
-      expect(loggedObject.codeChallenge).toContain('...');
-    });
-
     it('should generate consistent results with same random input', async () => {
       // Since we're using mocked predictable values, results should be consistent
       const result1 = await generatePKCE();
@@ -209,6 +184,17 @@ describe('OAuth Helpers', () => {
       const result = await generatePKCE();
 
       expect(Object.keys(result)).toHaveLength(2);
+    });
+  });
+
+  describe('generateOAuthState', () => {
+    it('uses cryptographically secure random bytes', () => {
+      const state = generateOAuthState();
+      const mockGetRandomValues = global.crypto.getRandomValues as jest.MockedFunction<typeof crypto.getRandomValues>;
+
+      expect(mockGetRandomValues).toHaveBeenCalledWith(expect.any(Uint8Array));
+      expect((mockGetRandomValues.mock.calls[0][0] as Uint8Array)).toHaveLength(32);
+      expect(state).toMatch(/^[A-Za-z0-9_-]{43}$/);
     });
   });
 

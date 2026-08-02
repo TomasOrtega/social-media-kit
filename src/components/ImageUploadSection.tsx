@@ -150,9 +150,11 @@ export const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({
                           // Create modal to show full image
                           const modal = document.createElement('div');
                           modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 cursor-pointer';
-                          modal.innerHTML = `
-                            <img src="${image.dataUrl}" alt="${image.name}" class="max-w-[90%] max-h-[90%] object-contain rounded-lg" />
-                          `;
+                          const fullImage = document.createElement('img');
+                          fullImage.src = image.dataUrl;
+                          fullImage.alt = image.name;
+                          fullImage.className = 'max-w-[90%] max-h-[90%] object-contain rounded-lg';
+                          modal.appendChild(fullImage);
                           modal.addEventListener('click', () => modal.remove());
                           document.body.appendChild(modal);
                         }}

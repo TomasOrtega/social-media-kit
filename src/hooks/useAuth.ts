@@ -55,6 +55,9 @@ export const useAuth = () => {
     try {
       if (savedAuth) {
         const parsedAuth = JSON.parse(savedAuth);
+        if (parsedAuth.bluesky) {
+          delete parsedAuth.bluesky.appPassword;
+        }
         // Merge with default auth state to ensure all platforms are present
         const mergedAuth: PlatformAuth = {
           linkedin: { ...auth.linkedin, ...parsedAuth.linkedin },
@@ -80,27 +83,22 @@ export const useAuth = () => {
                 const localConfig = JSON.parse(savedOAuthConfig);
                 console.log('📋 Merging with localStorage config:', localConfig);
 
-                // Merge configs - server provides LinkedIn/Twitter/Mastodon client IDs from .env,
-                // localStorage provides custom settings like Mastodon instance URL
+                // The server owns OAuth client IDs, redirect URIs, and the Mastodon instance.
                 const mergedConfig: OAuthConfig = {
                   linkedin: {
                     ...DEFAULT_OAUTH_CONFIG.linkedin,
-                    ...(serverConfig.linkedin || {}),
-                    // Override with any local overrides (though typically server takes precedence for client IDs)
-                    ...(localConfig.linkedin || {})
+                    ...(localConfig.linkedin || {}),
+                    ...(serverConfig.linkedin || {})
                   },
                   twitter: {
                     ...DEFAULT_OAUTH_CONFIG.twitter,
-                    ...(serverConfig.twitter || {}),
-                    ...(localConfig.twitter || {})
+                    ...(localConfig.twitter || {}),
+                    ...(serverConfig.twitter || {})
                   },
                   mastodon: {
                     ...DEFAULT_OAUTH_CONFIG.mastodon,
-                    ...(serverConfig.mastodon || {}),
-                    // Preserve instanceUrl from localStorage if present
-                    instanceUrl: localConfig.mastodon?.instanceUrl || serverConfig.mastodon?.instanceUrl || DEFAULT_OAUTH_CONFIG.mastodon.instanceUrl,
-                    // Use client ID from localStorage if customized, otherwise from server
-                    clientId: localConfig.mastodon?.clientId || serverConfig.mastodon?.clientId || ''
+                    ...(localConfig.mastodon || {}),
+                    ...(serverConfig.mastodon || {})
                   },
                   bluesky: {
                     ...DEFAULT_OAUTH_CONFIG.bluesky,
@@ -203,11 +201,11 @@ export const useAuth = () => {
 
       // Persist to localStorage
       localStorage.setItem("platformAuth", JSON.stringify(updatedAuth));
-      localStorage.removeItem(`oauth_state_${platform || 'all'}`);
+      sessionStorage.removeItem(`oauth_state_${platform || 'all'}`);
 
       // Additional cleanup for Twitter's code verifier
       if (!platform || platform === 'twitter') {
-        localStorage.removeItem('oauth_code_verifier');
+        sessionStorage.removeItem('twitter_code_verifier');
       }
 
       return updatedAuth;
@@ -243,8 +241,10 @@ export const useAuth = () => {
   const clearOAuthLocalStorage = useCallback(() => {
     if (confirm('⚠️ This will clear all OAuth settings from localStorage and reload the page. Continue?')) {
       localStorage.removeItem('oauthConfig');
-      localStorage.removeItem('oauth_state_linkedin');
-      localStorage.removeItem('oauth_state_twitter');
+      sessionStorage.removeItem('oauth_state_linkedin');
+      sessionStorage.removeItem('oauth_state_twitter');
+      sessionStorage.removeItem('oauth_state_mastodon');
+      sessionStorage.removeItem('twitter_code_verifier');
       localStorage.removeItem('platformAuth');
       console.log('🧹 Cleared OAuth localStorage');
       window.location.reload();

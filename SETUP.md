@@ -19,7 +19,12 @@ TWITTER_CLIENT_ID=your_twitter_client_id_here
 TWITTER_CLIENT_SECRET=your_twitter_client_secret_here
 
 # Server Configuration
+HOST=127.0.0.1
 PORT=3000
+APP_ORIGIN=http://localhost:3000
+
+# Optional: comma-separated origins for a separately hosted frontend
+ALLOWED_ORIGINS=
 ```
 
 ### 3. Get Your OAuth Credentials
@@ -194,16 +199,18 @@ npm run dev
 
 - **Never commit your `.env` file** to version control
 - Client secrets are stored securely on the server
-- OAuth flows follow security best practices
+- Set `APP_ORIGIN` to the exact public origin registered with each OAuth provider
+- Set `MASTODON_INSTANCE_URL` to the one HTTPS instance used by the server
+- The server binds to `127.0.0.1` by default; set `HOST` explicitly when deploying behind a trusted reverse proxy
 - Tokens are exchanged server-to-server
 - All posting goes through secure server endpoints
-- App passwords for Bluesky are generated securely by Bluesky
-- No sensitive data is transmitted to third parties
+- Bluesky app passwords are not persisted after authentication
+- OAuth tokens remain in browser storage; avoid untrusted browser extensions and clear site data on shared computers
 
 ## 📝 Complete Setup Checklist
 
 ### Prerequisites
-- [ ] Node.js (version 16 or higher)
+- [ ] Node.js 20.19+ or 22.12+
 - [ ] npm (comes with Node.js)
 
 ### Environment Setup
@@ -313,8 +320,7 @@ npm run dev
 ### Server Issues
 
 1. **Port 3000 in use**: 
-   - Kill existing processes: `sudo lsof -ti:3000 | xargs sudo kill -9`
-   - Change the PORT in your `.env` file if 3000 is already in use
+   - Stop the known process using the port, or change `PORT` and `APP_ORIGIN` in `.env`
 
 2. **Environment variables not loading**: 
    - Ensure `.env` file exists and restart server
@@ -364,4 +370,4 @@ This architecture ensures:
 
 ---
 
-**Having issues?** Check the troubleshooting section above or see [CHANGELOG.md](CHANGELOG.md) for recent fixes and improvements. 
+**Having issues?** Check the troubleshooting section above or see [CHANGELOG.md](CHANGELOG.md) for recent fixes and improvements.

@@ -7,7 +7,7 @@ Thank you for your interest in contributing to the Social Media Kit! We welcome 
 ### Prerequisites
 
 Before you begin, ensure you have the following installed:
-- **Node.js** (version 16 or higher)
+- **Node.js** 20.19+ or 22.12+
 - **npm** (comes with Node.js)
 - **Git** for version control
 
@@ -306,7 +306,7 @@ Mockups, examples, or references.
 When you submit a pull request, **GitHub Actions workflows automatically run**:
 
 - ✅ **CI Pipeline**: Multi-node testing, linting, build verification
-- 🧪 **Test Suite**: All 120 tests across Node.js 16.x, 18.x, 20.x
+- 🧪 **Test Suite**: Automated tests on supported Node.js releases
 - 📋 **Code Quality**: TypeScript checks, formatting, bundle analysis
 - 🛡️ **Security**: Dependency audits and vulnerability scanning
 
@@ -396,4 +396,4 @@ By contributing to this project, you agree that your contributions will be licen
 
 ---
 
-Thank you for contributing to the Social Media Kit! Your efforts help make this tool better for everyone. 🚀 
+Thank you for contributing to the Social Media Kit! Your efforts help make this tool better for everyone. 🚀

@@ -1,4 +1,5 @@
 import { PublishedPost } from "../types";
+import { openExternalUrl } from "../utils/urlSafety";
 
 interface PublishedPostsModalProps {
   show: boolean;
@@ -71,7 +72,7 @@ export function PublishedPostsModal({
                           {result.platform}
                           {result.postUrl && (
                             <button
-                              onClick={() => window.open(result.postUrl, '_blank')}
+                              onClick={() => openExternalUrl(result.postUrl!)}
                               className="ml-1 text-blue-500 hover:text-blue-600"
                               title="View post"
                             >
