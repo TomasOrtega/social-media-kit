@@ -9,6 +9,7 @@ import { getCurrentDateTimeString, formatTimezoneTime } from "./utils/dateTimeUt
 import { extractPostInfo, isAuthenticationError, capitalizePlatform, getPlatformDisplayName } from "./utils/platformHelpers";
 import { generateOAuthState, generatePKCE } from "./utils/oauthHelpers";
 import { getPostDelay } from "./utils/postingHelpers";
+import { getJwtExpiresAt } from "./utils/tokenExpiration";
 import { TagAutocomplete } from "./components/TagAutocomplete";
 import { TagManagerModal } from "./components/TagManagerModal";
 import { PublishedPostsModal } from "./components/PublishedPostsModal";
@@ -274,7 +275,7 @@ function App() {
   };
 
   // Helper function to ensure valid authentication before API calls
-  const ensureValidAuth = async (platform: 'linkedin' | 'twitter' | 'mastodon' | 'bluesky'): Promise<boolean> => {
+  const ensureValidAuth = async (platform: 'linkedin' | 'twitter' | 'mastodon' | 'bluesky'): Promise<string | null> => {
     const authData = auth[platform];
     return PlatformPosting.ensureValidAuth(
       platform,
@@ -1247,6 +1248,10 @@ function App() {
       }
       
       const data = await response.json();
+      const expiresAt = getJwtExpiresAt(data.accessJwt);
+      if (expiresAt === null) {
+        throw new Error('Bluesky returned an invalid access token');
+      }
       
       setAuth(prev => ({
         ...prev,
@@ -1255,7 +1260,7 @@ function App() {
           isAuthenticated: true,
           accessToken: data.accessJwt,
           refreshToken: data.refreshJwt,
-          expiresAt: Date.now() + (24 * 60 * 60 * 1000), // 24 hours
+          expiresAt,
           userInfo: data,
           handle: handle
         }
@@ -1356,19 +1361,19 @@ function App() {
 
   // Posting functions
   const postToLinkedIn = async (content: string, imageFiles: { file: File; dataUrl: string; name: string; }[] = []) => {
-    const isValid = await ensureValidAuth('linkedin');
-    if (!isValid) {
+    const accessToken = await ensureValidAuth('linkedin');
+    if (!accessToken) {
       throw new Error('Not authenticated with LinkedIn');
     }
-    return PlatformPosting.postToLinkedIn(content, imageFiles, auth.linkedin.accessToken);
+    return PlatformPosting.postToLinkedIn(content, imageFiles, accessToken);
   };
 
   const postToTwitter = async (content: string, replyToTweetId?: string, imageFiles: { file: File; dataUrl: string; name: string; }[] = []) => {
-    const isValid = await ensureValidAuth('twitter');
-    if (!isValid) {
+    const accessToken = await ensureValidAuth('twitter');
+    if (!accessToken) {
       throw new Error('Not authenticated with Twitter');
     }
-    return PlatformPosting.postToTwitter(content, replyToTweetId, imageFiles, auth.twitter.accessToken, showNotification);
+    return PlatformPosting.postToTwitter(content, replyToTweetId, imageFiles, accessToken, showNotification);
   };
 
   // Helper function to create facets for BlueSky mentions
@@ -1377,19 +1382,19 @@ function App() {
   };
 
   const postToBluesky = async (content: string, replyToUri?: string, replyToCid?: string, rootUri?: string, rootCid?: string, imageFiles: { file: File; dataUrl: string; name: string; }[] = []) => {
-    const isValid = await ensureValidAuth('bluesky');
-    if (!isValid) {
+    const accessToken = await ensureValidAuth('bluesky');
+    if (!accessToken) {
       throw new Error('Not authenticated with Bluesky');
     }
-    return PlatformPosting.postToBluesky(content, replyToUri, replyToCid, rootUri, rootCid, imageFiles, auth.bluesky.accessToken, auth.bluesky.userInfo.did);
+    return PlatformPosting.postToBluesky(content, replyToUri, replyToCid, rootUri, rootCid, imageFiles, accessToken, auth.bluesky.userInfo.did);
   };
 
   const postToMastodon = async (content: string, replyToStatusId?: string, imageFiles: { file: File; dataUrl: string; name: string; }[] = []) => {
-    const isValid = await ensureValidAuth('mastodon');
-    if (!isValid) {
+    const accessToken = await ensureValidAuth('mastodon');
+    if (!accessToken) {
       throw new Error('Not authenticated with Mastodon');
     }
-    return PlatformPosting.postToMastodon(content, replyToStatusId, imageFiles, auth.mastodon.accessToken, auth.mastodon.instanceUrl);
+    return PlatformPosting.postToMastodon(content, replyToStatusId, imageFiles, accessToken, auth.mastodon.instanceUrl);
   };
 
   // Published and deleted posts management functions
