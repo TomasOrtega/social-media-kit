@@ -116,7 +116,7 @@ More screenshots can be found in [this folder](/screenshots).
 ## 📦 Installation
 
 ### Prerequisites
-- **Node.js** (version 16 or higher)
+- **Node.js** 20.19+ or 22.12+
 - **npm** (comes with Node.js)
 
 ### Setup Steps
@@ -148,39 +148,6 @@ More screenshots can be found in [this folder](/screenshots).
    - The app serves both frontend and backend from the same port
 
 📋 **For detailed setup instructions including OAuth configuration, see [Complete Setup Guide](SETUP.md)**
-
-## 🐳 Docker Deployment
-
-Run the Social Media Kit using Docker for easy deployment without manual Node.js setup:
-
-### Quick Start with Docker
-
-```bash
-# Clone the repository
-git clone https://github.com/terrytangyuan/social-media-kit
-cd social-media-kit
-
-# Copy and configure environment variables
-cp .env.example .env
-# Edit .env with your OAuth credentials
-
-# Start with Docker Compose
-docker-compose up -d
-
-# Access at http://localhost:3000
-```
-
-### Using Pre-built Image
-
-```bash
-# Pull from GitHub Container Registry
-docker pull ghcr.io/terrytangyuan/social-media-kit:latest
-
-# Run with your .env file
-docker run -d -p 3000:3000 --env-file .env ghcr.io/terrytangyuan/social-media-kit:latest
-```
-
-📋 **For detailed Docker instructions, see [Docker Deployment Guide](DOCKER.md)**
 
 ### Development Mode
 

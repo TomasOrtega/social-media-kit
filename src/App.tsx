@@ -7,7 +7,7 @@ import { processUnifiedTags, formatForPlatform as formatForPlatformUtil } from "
 import { serializePostsForStorage, deserializePostsFromStorage } from "./utils/postSerialization";
 import { getCurrentDateTimeString, formatTimezoneTime } from "./utils/dateTimeUtils";
 import { extractPostInfo, isAuthenticationError, capitalizePlatform, getPlatformDisplayName } from "./utils/platformHelpers";
-import { generatePKCE } from "./utils/oauthHelpers";
+import { generateOAuthState, generatePKCE } from "./utils/oauthHelpers";
 import { getPostDelay } from "./utils/postingHelpers";
 import { TagAutocomplete } from "./components/TagAutocomplete";
 import { TagManagerModal } from "./components/TagManagerModal";
@@ -497,9 +497,9 @@ function App() {
           platform = 'mastodon';
         } else {
           // Fallback: check stored state
-          const linkedinState = localStorage.getItem('oauth_state_linkedin');
-          const twitterState = localStorage.getItem('oauth_state_twitter');
-          const mastodonState = localStorage.getItem('oauth_state_mastodon');
+          const linkedinState = sessionStorage.getItem('oauth_state_linkedin');
+          const twitterState = sessionStorage.getItem('oauth_state_twitter');
+          const mastodonState = sessionStorage.getItem('oauth_state_mastodon');
           if (state === linkedinState) platform = 'linkedin';
           else if (state === twitterState) platform = 'twitter';
           else if (state === mastodonState) platform = 'mastodon';
@@ -507,7 +507,7 @@ function App() {
         
         if (platform) {
           console.log('🎯 Detected platform:', platform);
-          const storedState = localStorage.getItem(`oauth_state_${platform}`);
+          const storedState = sessionStorage.getItem(`oauth_state_${platform}`);
           console.log('🔑 State validation:', { received: state, stored: storedState, match: state === storedState });
           
           if (state === storedState) {
@@ -579,10 +579,10 @@ function App() {
           }
           
           // Clean up
-          localStorage.removeItem(`oauth_state_${platform}`);
+          sessionStorage.removeItem(`oauth_state_${platform}`);
           // Clean up Twitter code verifier if this was a Twitter OAuth flow
           if (platform === 'twitter') {
-            localStorage.removeItem('twitter_code_verifier');
+            sessionStorage.removeItem('twitter_code_verifier');
           }
           // Clean up URL
           window.history.replaceState({}, document.title, window.location.pathname);
@@ -1084,7 +1084,7 @@ function App() {
       
       // Add PKCE code verifier for Twitter
       if (platform === 'twitter') {
-        const codeVerifier = localStorage.getItem('twitter_code_verifier');
+        const codeVerifier = sessionStorage.getItem('twitter_code_verifier');
         if (!codeVerifier) {
           throw new Error('Twitter code verifier not found. Please restart the authentication process.');
         }
@@ -1112,19 +1112,14 @@ function App() {
       }
       
       const tokenData = await tokenResponse.json();
-      console.log('📥 Token response received:', tokenData);
-      
       // User profile is now included in the token response from the server
       let userInfo = tokenData.userProfile;
-      console.log('👤 User profile data:', userInfo);
       
       // Validate that we have some user info (even minimal)
       if (!userInfo) {
         console.warn('⚠️ No user profile data received from server');
         userInfo = { authenticated: true, note: 'Profile data not available but posting should work' };
       }
-      
-      console.log('✅ Authentication successful with userInfo:', userInfo);
       
       // Update authentication state
       setAuth(prev => ({
@@ -1145,17 +1140,11 @@ function App() {
       
       // Clean up platform-specific OAuth data
       if (platform === 'twitter') {
-        localStorage.removeItem('twitter_code_verifier');
+        sessionStorage.removeItem('twitter_code_verifier');
         console.log('🧹 Cleaned up Twitter code verifier');
       }
       
       console.log('🎉 OAuth completion successful for', platform);
-      
-      // Ensure localStorage is updated immediately
-      setTimeout(() => {
-        const currentAuth = JSON.parse(localStorage.getItem('platformAuth') || '{}');
-        console.log('🔍 Auth state in localStorage after OAuth:', currentAuth);
-      }, 100);
       
     } catch (error) {
       console.error('OAuth completion error:', error);
@@ -1198,8 +1187,8 @@ function App() {
       console.log('💾 Current post ID preserved before OAuth redirect');
     }
     
-    const state = Math.random().toString(36).substring(2, 15);
-    localStorage.setItem(`oauth_state_${platform}`, state);
+    const state = generateOAuthState();
+    sessionStorage.setItem(`oauth_state_${platform}`, state);
     
     const params = new URLSearchParams({
       response_type: 'code',
@@ -1213,7 +1202,7 @@ function App() {
     if (platform === 'twitter') {
       try {
         const { codeVerifier, codeChallenge } = await generatePKCE();
-        localStorage.setItem('twitter_code_verifier', codeVerifier);
+        sessionStorage.setItem('twitter_code_verifier', codeVerifier);
         params.append('code_challenge', codeChallenge);
         params.append('code_challenge_method', 'S256');
         console.log('✅ PKCE parameters generated for Twitter');
@@ -1268,10 +1257,11 @@ function App() {
           refreshToken: data.refreshJwt,
           expiresAt: Date.now() + (24 * 60 * 60 * 1000), // 24 hours
           userInfo: data,
-          handle: handle,
-          appPassword: appPassword
+          handle: handle
         }
       }));
+
+      setBlueskyCredentials({ handle: '', appPassword: '' });
       
       setShowAuthModal(false);
       setPostingStatus('');
@@ -1326,10 +1316,10 @@ function App() {
             }
           }));
           
-          localStorage.removeItem(`oauth_state_${platform}`);
+          sessionStorage.removeItem(`oauth_state_${platform}`);
           // Clean up Twitter code verifier on logout
           if (platform === 'twitter') {
-            localStorage.removeItem('twitter_code_verifier');
+            sessionStorage.removeItem('twitter_code_verifier');
           }
           
           const platformName = getPlatformDisplayName(platform as 'linkedin' | 'twitter' | 'mastodon' | 'bluesky');
@@ -2561,7 +2551,7 @@ function App() {
             </button>
 
             <button
-              onClick={() => window.open('https://github.com/terrytangyuan/social-media-kit', '_blank')}
+              onClick={() => window.open('https://github.com/terrytangyuan/social-media-kit', '_blank', 'noopener,noreferrer')}
               className={`text-sm px-3 py-1 rounded-lg ${darkMode ? "bg-yellow-600 hover:bg-yellow-700 text-white" : "bg-yellow-500 hover:bg-yellow-600 text-white"}`}
               title="Star this project on GitHub!"
             >

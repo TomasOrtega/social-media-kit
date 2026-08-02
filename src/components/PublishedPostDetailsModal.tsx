@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { PublishedPost } from '../types';
+import { openExternalUrl } from '../utils/urlSafety';
 
 interface PublishedPostDetailsModalProps {
   post: PublishedPost | null;
@@ -117,7 +118,7 @@ export const PublishedPostDetailsModal: React.FC<PublishedPostDetailsModalProps>
                         <p>
                           <span className={`font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>URL:</span>
                           <button
-                            onClick={() => window.open(result.postUrl, '_blank')}
+                            onClick={() => openExternalUrl(result.postUrl!)}
                             className="ml-2 text-blue-500 hover:text-blue-600 underline"
                           >
                             {result.postUrl} 🔗

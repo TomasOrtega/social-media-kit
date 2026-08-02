@@ -102,6 +102,7 @@ temp/
 # IDE and Editor files
 .vscode/
 .idea/
+.claude/settings.local.json
 *.swp
 *.swo
 *~
@@ -152,10 +153,6 @@ firebase.json
 
 # AWS
 .aws/
-
-# Docker
-Dockerfile.dev
-docker-compose.dev.yml
 
 # Testing
 coverage/
